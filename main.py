@@ -13,8 +13,8 @@ def getPersonURL(person_id, api_key):
 def getPersonMoviesURL(person_id, api_key):
     return "https://api.themoviedb.org/3/person/"+person_id+"/movie_credits?api_key="+api_key+"&language=en-US"
 
-api_key = '73dbe57502eb01186454fd712524e897'#input('Enter your TMDB API Key: ')
-movie_id = '27205'
+api_key = input('Enter your TMDB API Key: ')
+movie_id = input('Enter movie ID: ')
 
 movie_attributes = ['adult', 'backdrop_path', 'budget', 'id', 'popularity', 'poster_path', 'release_date', 'revenue', 'runtime', 'status', 'title', 'vote_average']
 cast_attributes = ['id', 'character', 'name', 'gender', 'birthday', 'deathday', 'popularity', 'place_of_birth', 'profile_path']
