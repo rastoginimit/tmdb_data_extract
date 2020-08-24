@@ -13,34 +13,44 @@ def getPersonURL(person_id, api_key):
 def getPersonMoviesURL(person_id, api_key):
     return "https://api.themoviedb.org/3/person/"+person_id+"/movie_credits?api_key="+api_key+"&language=en-US"
 
+api_key = '73dbe57502eb01186454fd712524e897'#input('Enter your TMDB API Key: ')
+movie_id = '27205'
 
-api_key = input('Enter your TMDB API Key: ')
-movie_id = '24428'
-
-#movie_attributes = ['adult', 'backdrop_path', 'budget', 'id', 'popularity', 'poster_path', 'release_date', 'revenue', 'runtime', 'status', 'title', 'vote_average']
-movie_attributes = ['adult', 'backdrop_path', 'id', 'popularity', 'poster_path', 'release_date', 'title', 'vote_average']
-cast_attributes = ['character', 'gender', 'id', 'name', 'profile_path']
-cast_additional_attributes = ['id', 'birthday', 'deathday', 'popularity', 'place_of_birth']
+movie_attributes = ['adult', 'backdrop_path', 'budget', 'id', 'popularity', 'poster_path', 'release_date', 'revenue', 'runtime', 'status', 'title', 'vote_average']
+cast_attributes = ['id', 'character', 'name', 'gender', 'birthday', 'deathday', 'popularity', 'place_of_birth', 'profile_path']
 
 movie_details = requests.get(getMovieURL(movie_id, api_key)).json()
 movie_df = pd.DataFrame([movie_details], columns=movie_attributes)
-#print(movie_df)
+movie_df.to_csv('movie.csv', index=False)
 
-movie_cast_details = requests.get(getCreditsURL(movie_id, api_key)).json()['cast']
-movie_cast_df = pd.DataFrame(movie_cast_details, columns=cast_attributes)
-#print(movie_cast_df)
+mapping = list()
+movie_casts = requests.get(getCreditsURL(movie_id, api_key)).json()['cast']
+for cast in movie_casts:
+    cast_id = str(cast['id'])
+    cast_details = requests.get(getPersonURL(cast_id, api_key)).json()
+    for attr in cast_attributes:
+        if attr in cast:
+            continue
+        cast[attr] = cast_details[attr]
+    other_movies = requests.get(getPersonMoviesURL(cast_id, api_key)).json()['cast']
+    for movie in other_movies:
+        other_movie_id = str(movie['id'])
+        if movie_id == other_movie_id:
+            continue
+        a_map = {"cast_id": cast_id, "other_movie_id": other_movie_id}
+        mapping.append(a_map)
 
-cast_additional_data = list()
-cast_other_movies_data = list()
-for cast_id in movie_cast_df['id']:
-    person_details = requests.get(getPersonURL(str(cast_id), api_key)).json()
-    cast_additional_data.append(person_details)
-    #print(person_details)
-    other_movies = requests.get(getPersonMoviesURL(str(cast_id), api_key)).json()['cast']
-    cast_other_movies_data.extend(other_movies)
-    break
+movie_casts_df = pd.DataFrame(movie_casts, columns=cast_attributes)
+movie_casts_df.to_csv('cast.csv', index=False)
 
-#person_df = pd.DataFrame(cast_additional_data, columns=cast_additional_attributes)
-#print(person_df)
-cast_other_movies_df = pd.DataFrame(cast_other_movies_data, columns=movie_attributes)
-print(cast_other_movies_df)
+mapping_df = pd.DataFrame(mapping, columns=['cast_id', 'other_movie_id'])
+mapping_df.to_csv('mapping.csv', index=False)
+
+all_other_movie_ids = set(movie_id for a_map in mapping for movie_id in a_map.values())
+print(len(all_other_movie_ids))
+all_other_movie_details = list()
+for other_movie_id in all_other_movie_ids:
+    other_movie_details = requests.get(getMovieURL(other_movie_id, api_key)).json()
+    all_other_movie_details.append(other_movie_details)
+other_movies_df = pd.DataFrame(all_other_movie_details, columns=movie_attributes)
+other_movies_df.to_csv('other_movies.csv', index=False)
